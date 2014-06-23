@@ -150,28 +150,33 @@
         },
         //
         validate: function($el) {
-            var that = this;
+            var that = this,
+                passFlag = true;
             $el.each(function() {
                 var $this = $(this),
                     className = $this.attr('class'), match, rangeStr, lower, upper;
                 if ($this.hasClass('required')) {
                     if (!that.verReq($this)) {
-                        return false;
+                        passFlag = false;
+                        return;
                     }
                 }
                 if ($this.hasClass('num')) {
                     if (!that.verNum($this)) {
-                        return false;
+                        passFlag = false;
+                        return;
                     }
                 }
                 if ($this.hasClass('posNum')) {
                     if (!that.verPosNum($this)) {
-                        return false;
+                        passFlag = false;
+                        return;
                     }
                 }
                 if ($this.hasClass('notNegNum')) {
                     if (!that.verNotNegNum($this)) {
-                        return false;
+                        passFlag = false;
+                        return;
                     }
                 }
                 //使用()/[]来确定包含上下限 的情况
@@ -202,11 +207,12 @@
                     lower = match[1];
                     upper = match[2];
                     if (!that.verNumRange($this, type, lower, upper)) {
-                        return false;
+                        passFlag = false;
+                        return;
                     }
                 }
-                return true;
             });
+            return passFlag;
         },
         verReq: function($el) {
             var elV = $el.val(),
