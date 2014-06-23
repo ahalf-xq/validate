@@ -181,9 +181,27 @@
                 //(num1, num2) -4
                 match = className.match(/numRange\[(\d),(\d)\]/);
                 if (match) {
+                    type = 1;
+                } else {
+                    match = className.match(/numRange\((\d),(\d)\]/);
+                    if (match) {
+                        type = 2;
+                    } else {
+                        match = className.match(/numRange\[(\d),(\d)\)/);
+                        if (match) {
+                            type = 3;
+                        } else {
+                            match = className.match(/numRange\((\d),(\d)\)/);
+                            if (match) {
+                                type = 4;
+                            }
+                        }
+                    }
+                }
+                if (match) {
                     lower = match[1];
                     upper = match[2];
-                    if (!that.verNumRange($this, 1, lower, upper)) {
+                    if (!that.verNumRange($this, type, lower, upper)) {
                         return false;
                     }
                 }
