@@ -289,7 +289,7 @@
             return false;
         };
     };
-    formVali.prototype = ver;
+    formVer.prototype = ver;
     $.fn.validate = {};
     $.fn.validate = function() {
         var $form = $(this);
