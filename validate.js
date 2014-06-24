@@ -260,7 +260,7 @@
             var $parent = $el.closest('.form-group');
             if (errTxt) {
                 $el.tooltip({
-                    'placement': 'top',
+                    'placement': 'auto',
                     'title': errTxt,
                     'trigger': 'hover'
                 });
