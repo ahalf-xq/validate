@@ -258,6 +258,14 @@
         },
         _verFn: function($el, errTxt) {
             var $parent = $el.closest('.form-group');
+            if ($parent.length === 0) {
+                //havent use bootstrap form style
+                $parent = $el;
+            }
+            if ($parent.hasClass('has-error')) {
+                $parent.removeClass('has-error');
+                $el.tooltip('destroy');
+            }
             if (errTxt) {
                 $el.tooltip({
                     'placement': 'auto',
@@ -266,10 +274,6 @@
                 });
                 $parent.addClass('has-error');
                 return false;
-            }
-            if ($parent.hasClass('has-error')) {
-                $parent.removeClass('has-error');
-                $el.tooltip('destroy');
             }
             return true;
         },
