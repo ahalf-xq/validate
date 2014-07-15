@@ -243,7 +243,7 @@
         verNotNegNum: function($el) {
             var elV = $el.val(),
                 errTxt;
-            if (!this.isPosNum(elV)) {
+            if (!this.isNotNegNum(elV)) {
                 errTxt = '须填入非负数';
             }
             return this._verFn($el, errTxt);
