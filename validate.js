@@ -83,9 +83,6 @@
                 isNumL = this.isNum(lower);
                 isNumU = this.isNum(upper);
                 //
-                if (!isNumU && !isNumL) {
-                    return false;
-                }
                 switch (type) {
                     case 1:
                         if (isNumL) {
@@ -154,7 +151,12 @@
                 passFlag = true;
             $el.each(function() {
                 var $this = $(this),
-                    className = $this.attr('class'), match, rangeStr, lower, upper;
+                    className = $this.attr('class'), match, type, lower, upper,
+                    str_start, str_end, sub_str;
+                //不验证项，跳过
+                if ($this.hasClass('nova')) {
+                    return;
+                }
                 if ($this.hasClass('required')) {
                     if (!that.verReq($this)) {
                         passFlag = false;
@@ -180,32 +182,35 @@
                     }
                 }
                 //使用()/[]来确定包含上下限 的情况
-                //[num1, num2] -1
-                //(num1,num2]  -2
-                //[num1, num2) -3
-                //(num1, num2) -4
-                match = className.match(/numRange\[(\d),(\d)\]/);
-                if (match) {
-                    type = 1;
-                } else {
-                    match = className.match(/numRange\((\d),(\d)\]/);
-                    if (match) {
-                        type = 2;
-                    } else {
-                        match = className.match(/numRange\[(\d),(\d)\)/);
-                        if (match) {
-                            type = 3;
+                //[num1,num2] -1
+                //(num1,num2] -2
+                //[num1,num2) -3
+                //(num1,num2) -4
+                if (className.indexOf('numRange')) {
+                    str_start = className.indexOf('numRange(');
+                    if (str_start > -1) {
+                        str_end = className.indexOf(')');
+                        if (str_end > -1) {
+                            type = 4;
                         } else {
-                            match = className.match(/numRange\((\d),(\d)\)/);
-                            if (match) {
-                                type = 4;
-                            }
+                            str_end = className.indexOf(']');
+                            type = 2;
+                        }
+                    } else {
+                        str_start = className.indexOf('numRange[');
+                        str_end = className.indexOf(']');
+                        if (str_end > -1) {
+                            type = 1;
+                        } else {
+                            str_end = className.indexOf(')');
+                            type = 3;
                         }
                     }
-                }
-                if (match) {
-                    lower = match[1];
-                    upper = match[2];
+                    //
+                    sub_str = className.substring(str_start + 9, str_end);
+                    sub_str = sub_str.split(',');
+                    lower = sub_str[0];
+                    upper = sub_str[1];
                     if (!that.verNumRange($this, type, lower, upper)) {
                         passFlag = false;
                         return;
@@ -217,9 +222,12 @@
         verReq: function($el) {
             var elV = $el.val(),
                 errTxt;
-            if (this.isEmpStr(elV)) {
+            if ($el.hasClass('select2-container')) {
+                return true;
+            }
+            if (this.isEmpStr(elV) || (!elV || elV.length === 0)) {//后面情况适用与select（多选）
                 errTxt = '不能为空';
-            } else if (this.isSpace(elV)) {
+            } else if (this.isSpace(elV.toString())) {
                 errTxt = '不能为空格';
             }
             return this._verFn($el, errTxt);
@@ -250,35 +258,113 @@
         },
         verNumRange: function($el, type, lower, upper) {
             var elV = $el.val(),
-                errTxt;
+                errTxt, errHead, errTail;
             if (!this.isNumInRange(elV, type, lower, upper)) {
-                errTxt = '取值范围：' + lower + '-' + upper;
+                if (lower === '*') {
+                    switch (type) {
+                        case 1:
+                            errHead = '取值应小于等于';
+                            break;
+                        case 2:
+                            errHead = '取值应小于等于';
+                            break;
+                        case 3:
+                            errHead = '取值应小于';
+                            break;
+                        case 4:
+                            errHead = '取值应小于';
+                            break;
+                    }
+                    errTxt = errHead + upper;
+                } else if (upper === '*') {
+                    switch (type) {
+                        case 1:
+                            errHead = '取值应大于等于';
+                            break;
+                        case 2:
+                            errHead = '取值应大于';
+                            break;
+                        case 3:
+                            errHead = '取值应大于等于';
+                            break;
+                        case 4:
+                            errHead = '取值应大于';
+                            break;
+                    }
+                    errTxt = errHead + lower;
+                } else {
+                    switch (type) {
+                        case 1:
+                            errHead = '[';
+                            errTail = ']';
+                            break;
+                        case 2:
+                            errHead = '(';
+                            errTail = ']';
+                            break;
+                        case 3:
+                            errHead = '[';
+                            errTail = ')';
+                            break;
+                        case 4:
+                            errHead = '(';
+                            errTail = ')';
+                            break;
+                    }
+                    errTxt = '取值范围：' + errHead + lower + ',' + upper + errTail;
+                }
             }
             return this._verFn($el, errTxt);
         },
         _verFn: function($el, errTxt) {
-            var $parent = $el.closest('.form-group');
+            var $parent = $el.closest('.form-group'),
+                $tipOn, elBorder;
+            //
             if ($parent.length === 0) {
-                //havent use bootstrap form style
+                // 未全部用bootstrap改写的模块使用
                 $parent = $el;
+                elBorder = $el.css('border');
             }
-            if ($parent.hasClass('has-error')) {
-                $parent.removeClass('has-error');
-                $el.tooltip('destroy');
-            }
+            this._removeErr($el, $parent);
             if (errTxt) {
-                $el.tooltip({
+                if ($el.attr('title')) {
+                    $el.attr('ori-title', $el.attr('title'));
+                    $el.removeAttr('title');
+                }
+                if ($el[0].tagName === 'SELECT') {
+                    $tipOn = $('#s2id_' + $el[0].id);
+                } else {
+                    $tipOn = $el;
+                }
+                $tipOn.tooltip({
                     'placement': 'auto',
                     'title': errTxt,
                     'trigger': 'hover'
                 });
-                $parent.addClass('has-error');
+                if (elBorder && (elBorder === '' || elBorder.indexOf('none') > -1)) {
+                    $parent.addClass('table-error');
+                } else {
+                    $parent.addClass('has-error');
+                }
                 return false;
             }
             return true;
         },
-        removeVer: function($el) {
-    
+        _removeErr: function($el, $parent) {
+            if ($parent.hasClass('has-error') || $parent.hasClass('table-error')) {
+                $parent.removeClass('has-error');
+                $parent.removeClass('table-error');
+                if ($el[0].tagName === 'SELECT') {
+                    //引用select2插件，需要清除包装
+                    $('#s2id_' + $el[0].id).tooltip('destroy');
+                } else {
+                    $el.tooltip('destroy');
+                }
+                if ($el.attr('ori-title')) {
+                    $el.attr('title', $el.attr('ori-title'));
+                    $el.removeAttr('ori-title');
+                }
+            }
         }
     },
     formVer = function($form) {
@@ -286,9 +372,18 @@
             vaElems = $form.find('.va');
         //Bind Blur-Validate To Element contains class 'va'
         vaElems.each(function() {
-            $(this).blur(function() {
-                that.validate($(this));
-            });
+            switch (this.tagName) {
+                case 'SELECT':
+                    $(this).change(function() {
+                        that.validate($(this));
+                    });
+                    break;
+                case 'INPUT':
+                    $(this).blur(function() {
+                        that.validate($(this));
+                    });
+                    break;
+            }
         });
         //validate when save form info
         //if return false,you can stop form submit
@@ -297,6 +392,26 @@
                 return true;
             }
             return false;
+        };
+        //
+        this.removeVer = function($el) {
+            var $els;
+            //
+            if ($el) {
+                $els = $el;
+            } else {
+                $els = vaElems;
+            }
+            $els.each(function() {
+                var $this = $(this),
+                    $parent;
+                $parent = $this.closest('.form-group');
+                if ($parent.length === 0) {
+                    // 未全部用bootstrap改写的模块使用
+                    $parent = $this;
+                }
+                that._removeErr($this, $parent);
+            });
         };
     };
     formVer.prototype = ver;
