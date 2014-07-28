@@ -186,7 +186,7 @@
                 //(num1,num2] -2
                 //[num1,num2) -3
                 //(num1,num2) -4
-                if (className.indexOf('numRange')) {
+                if (className.indexOf('numRange') > -1) {
                     str_start = className.indexOf('numRange(');
                     if (str_start > -1) {
                         str_end = className.indexOf(')');
