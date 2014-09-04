@@ -318,12 +318,16 @@
         },
         _verFn: function($el, errTxt) {
             var $parent = $el.closest('.form-group'),
-                $tipOn, elBorder;
+                $tipOn, b_top, b_right, b_bottom, b_left, tagName;
             //
             if ($parent.length === 0) {
                 // 未全部用bootstrap改写的模块使用
                 $parent = $el;
-                elBorder = $el.css('border');
+                //
+                b_top = $el.css('border-top-style');
+                b_right = $el.css('border-right-style');
+                b_bottom = $el.css('border-bottom-style');
+                b_left = $el.css('border-left-style');
             }
             this._removeErr($el, $parent);
             if (errTxt) {
@@ -331,7 +335,8 @@
                     $el.attr('ori-title', $el.attr('title'));
                     $el.removeAttr('title');
                 }
-                if ($el[0].tagName === 'SELECT') {
+                tagName = $el[0].tagName;
+                if (tagName === 'SELECT') {
                     $tipOn = $('#s2id_' + $el[0].id);
                 } else {
                     $tipOn = $el;
@@ -341,8 +346,14 @@
                     'title': errTxt,
                     'trigger': 'hover'
                 });
-                if (elBorder && (elBorder === '' || elBorder.indexOf('none') > -1)) {
-                    $parent.addClass('table-error');
+
+                if (tagName === 'INPUT') {
+                    if (b_top === 'none' || b_right === 'none' || b_left === 'none' || b_bottom === 'none') {
+                        //任一边无边框时，用背景填充
+                        $parent.addClass('table-error');
+                    } else {
+                        $parent.addClass('has-error');
+                    }
                 } else {
                     $parent.addClass('has-error');
                 }
